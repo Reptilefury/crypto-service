@@ -1,8 +1,3 @@
-// Mock ethers before importing the service
-jest.mock('ethers', () => ({
-  JsonRpcProvider: jest.fn(),
-}));
-
 import chainlinkService from '../../src/services/chainlink';
 
 describe('ChainlinkService', () => {
