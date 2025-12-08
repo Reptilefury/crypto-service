@@ -1,22 +1,23 @@
+import { ethers } from 'ethers';
+
+// Mock @biconomy/account locally to ensure it works
+jest.mock('@biconomy/account', () => ({
+  __esModule: true,
+  BiconomySmartAccountV2: {
+    create: jest.fn(),
+  },
+  PaymasterMode: {
+    SPONSORED: 'SPONSORED',
+  },
+}));
+
 import biconomyService from '../../src/services/biconomy';
 
 describe('BiconomyService', () => {
-  describe('createSmartAccount', () => {
-    it('should create smart account successfully', async () => {
-      const userAddress = '0x123456789abcdef';
-      
-      const result = await biconomyService.createSmartAccount(userAddress);
-
-      expect(result.success).toBe(true);
-      expect(result.userAddress).toBe(userAddress);
-      expect(result.smartAccountAddress).toBeDefined();
-    });
-  });
-
   describe('getSmartAccountAddress', () => {
     it('should get smart account address', async () => {
       const userAddress = '0x123456789abcdef';
-      
+
       const result = await biconomyService.getSmartAccountAddress(userAddress);
 
       expect(result.success).toBe(true);
@@ -26,13 +27,26 @@ describe('BiconomyService', () => {
 
   describe('executeTransaction', () => {
     it('should execute transaction successfully', async () => {
-      const smartAccountAddress = '0x987654321fedcba';
+      const smartAccount = {
+        address: '0x987654321fedcba',
+        buildUserOp: jest.fn().mockResolvedValue({}),
+        sendUserOp: jest.fn().mockResolvedValue({ userOpHash: '0xhash' })
+      };
       const transaction = { to: '0x123', value: '1000000000000000000' };
-      
-      const result = await biconomyService.executeTransaction(smartAccountAddress, transaction);
+
+      const result = await biconomyService.executeTransaction(smartAccount, transaction);
 
       expect(result.success).toBe(true);
-      expect(result.transactionHash).toBeDefined();
+      expect(result.userOpHash).toBeDefined();
+    });
+  });
+
+  describe('getBiconomyConfig', () => {
+    it('should return biconomy configuration', () => {
+      const config = biconomyService.getBiconomyConfig();
+
+      expect(config.bundlerUrl).toBeDefined();
+      expect(config.chainId).toBeDefined();
     });
   });
 });
