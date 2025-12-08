@@ -1,0 +1,32 @@
+pr_reviewer:
+  enable_ai_review: true
+  enable_pr_description: true
+  enable_code_suggestions: true
+  enable_security_analysis: true
+  enable_duplication_check: true
+  enable_performance_analysis: true
+  enable_test_analysis: true
+  enable_documentation_analysis: true
+  enable_rag_context: true
+  enable_compliance_checking: true
+  enable_dependency_analysis: true
+  review_depth: "deep"
+  auto_approve_minor: false
+  block_on_critical: true
+  
+pr_description:
+  enable_pr_description: true
+  use_description_markers: true
+  
+pr_code_suggestions:
+  enable_code_suggestions: true
+  
+config:
+  model: "gpt-4"
+  language: "en"
+  verbosity_level: 2
+  
+github:
+  publish_inline_comments: true
+  publish_review_comments: true
+  publish_description_as_comment: false
