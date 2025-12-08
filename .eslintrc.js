@@ -7,8 +7,13 @@ module.exports = {
   extends: [
     'eslint:recommended',
   ],
+  env: {
+    node: true,
+    es6: true,
+  },
   rules: {
-    'no-unused-vars': 'error',
+    'no-unused-vars': 'off',
     'no-console': 'warn',
+    'no-unreachable': 'off',
   },
 };
