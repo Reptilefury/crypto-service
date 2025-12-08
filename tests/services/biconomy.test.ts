@@ -1,7 +1,11 @@
 import biconomyService from '../../src/services/biconomy';
 
 // Mock ethers
-jest.mock('ethers');
+jest.mock('ethers', () => ({
+  JsonRpcProvider: jest.fn(),
+  getCreateAddress: jest.fn().mockReturnValue('0x1234567890abcdef1234567890abcdef12345678'),
+  randomBytes: jest.fn().mockReturnValue(new Uint8Array(32).fill(1)),
+}));
 
 describe('BiconomyService', () => {
   describe('createSmartAccount', () => {

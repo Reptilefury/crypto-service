@@ -1,3 +1,24 @@
+// Mock Magic SDK before importing
+jest.mock('@magic-sdk/admin', () => ({
+  Magic: jest.fn().mockImplementation(() => ({
+    token: {
+      validate: jest.fn().mockResolvedValue(true),
+    },
+    users: {
+      getMetadataByToken: jest.fn().mockResolvedValue({
+        issuer: 'did:ethr:0x123',
+        email: 'test@example.com',
+        publicAddress: '0x123456789',
+      }),
+      getMetadataByIssuer: jest.fn().mockResolvedValue({
+        issuer: 'did:ethr:0x123',
+        email: 'test@example.com',
+        publicAddress: '0x123456789',
+      }),
+    },
+  })),
+}));
+
 import Fastify from 'fastify';
 import authRoutes from '../../src/routes/auth';
 
