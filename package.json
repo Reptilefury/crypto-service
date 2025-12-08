@@ -15,6 +15,10 @@
   },
   "dependencies": {
     "@magic-sdk/admin": "^2.0.0",
+    "@biconomy/account": "^4.5.0",
+    "@safe-global/safe-core-sdk": "^3.3.5",
+    "@safe-global/safe-ethers-lib": "^1.9.4",
+    "@chainlink/contracts": "^0.8.0",
     "ethers": "^6.0.0",
     "fastify": "^4.0.0",
     "@fastify/cors": "^9.0.0",
