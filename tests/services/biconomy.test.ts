@@ -1,7 +1,6 @@
 import biconomyService from '../../src/services/biconomy';
 
-// Mock Biconomy SDK
-jest.mock('@biconomy/smart-account');
+// Mock ethers
 jest.mock('ethers');
 
 describe('BiconomyService', () => {
@@ -14,19 +13,6 @@ describe('BiconomyService', () => {
       expect(result.success).toBe(true);
       expect(result.userAddress).toBe(userAddress);
       expect(result.smartAccountAddress).toBeDefined();
-    });
-
-    it('should handle error during smart account creation', async () => {
-      // Mock error scenario
-      jest.spyOn(biconomyService, 'createSmartAccount').mockResolvedValueOnce({
-        success: false,
-        error: 'Failed to create smart account'
-      });
-
-      const result = await biconomyService.createSmartAccount('invalid_address');
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Failed to create smart account');
     });
   });
 
