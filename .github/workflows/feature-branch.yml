@@ -45,8 +45,6 @@ jobs:
       env:
         OPENAI_KEY: ${{ secrets.QODO_TOKEN }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        entryPoint: 'review'
 
   # Code quality and testing
   code-quality:
