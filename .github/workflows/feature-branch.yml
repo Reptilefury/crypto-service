@@ -42,20 +42,11 @@ jobs:
       
     - name: Qodo Merge AI Review
       uses: Codium-ai/pr-agent@main
+      env:
+        OPENAI_KEY: ${{ secrets.QODO_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        qodo_token: ${{ secrets.QODO_TOKEN }}
-        enable_ai_review: true
-        enable_pr_description: true
-        enable_code_suggestions: true
-        enable_security_analysis: true
-        enable_duplication_check: true
-        enable_performance_analysis: true
-        enable_test_analysis: true
-        enable_documentation_analysis: true
-        review_depth: "deep"
-        auto_approve_minor: false
-        block_on_critical: true
+        entryPoint: 'review'
 
   # Code quality and testing
   code-quality:
