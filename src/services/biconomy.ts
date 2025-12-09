@@ -70,7 +70,6 @@ class BiconomyService {
         note: 'Use createUserWallet() with actual signer for full Smart Account'
       };
     } catch (error) {
-      console.error('Biconomy getSmartAccountAddress error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get smart account address'
@@ -145,7 +144,6 @@ class BiconomyService {
         message: 'Transaction executed successfully via Biconomy bundler'
       };
     } catch (error) {
-      console.error('Biconomy executeTransaction error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Transaction failed'
