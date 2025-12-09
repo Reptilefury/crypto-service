@@ -113,7 +113,11 @@ jobs:
           echo '{"version": "2.1.0", "runs": [{"tool": {"driver": {"name": "Snyk"}}, "results": []}]}' > snyk.sarif
         else
           ./snyk auth ${{ secrets.SNYK_TOKEN }}
-          ./snyk test --severity-threshold=high --sarif-file-output=snyk.sarif || echo '{"version": "2.1.0", "runs": [{"tool": {"driver": {"name": "Snyk"}}, "results": []}]}' > snyk.sarif
+          ./snyk test --severity-threshold=high --sarif-file-output=snyk.sarif
+          if [ $? -ne 0 ]; then
+            echo "❌ Snyk found security vulnerabilities!"
+            exit 1
+          fi
         fi
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
