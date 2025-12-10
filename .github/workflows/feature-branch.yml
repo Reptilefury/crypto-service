@@ -149,11 +149,9 @@ jobs:
         severity: 'CRITICAL,HIGH'
         exit-code: '1'
         ignore-unfixed: true
-        args: >-
-          --ignorefile .trivyignore
-          --skip-dirs /root/.npm,/root/.cache
-          --skip-dirs /usr/local/lib/node_modules
-          --scanners vuln
+        scanners: 'vuln'
+        trivyignores: '.trivyignore'
+        skip-dirs: '/root/.npm,/root/.cache,/usr/local/lib/node_modules'
         
     - name: Create empty Trivy results if scan failed
       run: |
