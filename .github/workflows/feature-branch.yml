@@ -171,9 +171,15 @@ jobs:
           | map(select(.properties.fixedVersion != null or .properties.fixedStatus == "fixed"))
           | length
         ' trivy-results.sarif)
+        PATCHABLE_TEXT=$(jq '
+          .runs[0].results
+          | map(select(.message.text | test("fixed in|Fixed in"; "i")))
+          | length
+        ' trivy-results.sarif)
         echo "Total vulnerabilities: $TOTAL"
-        echo "Patchable vulnerabilities: $PATCHABLE"
-        if [ "$PATCHABLE" -gt 0 ]; then
+        echo "Patchable (metadata): $PATCHABLE"
+        echo "Patchable (text): $PATCHABLE_TEXT"
+        if [ "$PATCHABLE" -gt 0 ] || [ "$PATCHABLE_TEXT" -gt 0 ]; then
           echo "❌ Patchable vulnerabilities found! Failing pipeline."
           exit 1
         else
