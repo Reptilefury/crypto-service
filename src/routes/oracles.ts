@@ -1,6 +1,8 @@
 import { FastifyPluginAsync } from 'fastify';
 import chainlinkService from '../services/chainlink';
 import umaService from '../services/uma';
+import { ApiResponse } from '../common/response/ApiResponse';
+import { ValidationException } from '../common/exception/AppException';
 
 const oracleRoutes: FastifyPluginAsync = async (fastify) => {
 
@@ -12,11 +14,7 @@ const oracleRoutes: FastifyPluginAsync = async (fastify) => {
 
     const result = await chainlinkService.getPrice(symbol.toUpperCase());
 
-    if (result.success) {
-      return reply.send(result);
-    } else {
-      return reply.code(404).send(result);
-    }
+    return reply.send(ApiResponse.success(result));
   });
 
   // Resolve market based on price
@@ -30,16 +28,12 @@ const oracleRoutes: FastifyPluginAsync = async (fastify) => {
     };
 
     if (!marketId || !symbol || !targetPrice || !comparisonType) {
-      return reply.code(400).send({ error: 'Market ID, symbol, target price, and comparison type are required' });
+      throw new ValidationException({ error: 'Market ID, symbol, target price, and comparison type are required' });
     }
 
     const result = await chainlinkService.resolveMarket(marketId, symbol, targetPrice, comparisonType, resolutionTime);
 
-    if (result.success) {
-      return reply.send(result);
-    } else {
-      return reply.code(500).send(result);
-    }
+    return reply.send(ApiResponse.success(result));
   });
 
   // Validate price for market
@@ -51,22 +45,18 @@ const oracleRoutes: FastifyPluginAsync = async (fastify) => {
     };
 
     if (!symbol || !targetPrice || !comparisonType) {
-      return reply.code(400).send({ error: 'Symbol, target price, and comparison type are required' });
+      throw new ValidationException({ error: 'Symbol, target price, and comparison type are required' });
     }
 
     const result = await chainlinkService.validatePriceForMarket(symbol, targetPrice, comparisonType);
 
-    if (result.success) {
-      return reply.send(result);
-    } else {
-      return reply.code(500).send(result);
-    }
+    return reply.send(ApiResponse.success(result));
   });
 
   // Get available price feeds
   fastify.get('/chainlink/feeds', async (request, reply) => {
     const result = chainlinkService.getAvailableFeeds();
-    return reply.send(result);
+    return reply.send(ApiResponse.success(result));
   });
 
   // Chainlink Functions Routes
@@ -80,16 +70,12 @@ const oracleRoutes: FastifyPluginAsync = async (fastify) => {
     };
 
     if (!marketId || !apiEndpoint || !sourceCode) {
-      return reply.code(400).send({ error: 'Market ID, API endpoint, and source code are required' });
+      throw new ValidationException({ error: 'Market ID, API endpoint, and source code are required' });
     }
 
     const result = await chainlinkService.requestFunctionsResolution(marketId, apiEndpoint, sourceCode);
 
-    if (result.success) {
-      return reply.send(result);
-    } else {
-      return reply.code(500).send(result);
-    }
+    return reply.send(ApiResponse.success(result));
   });
 
   // Simulate Functions script
@@ -100,22 +86,18 @@ const oracleRoutes: FastifyPluginAsync = async (fastify) => {
     };
 
     if (!sourceCode) {
-      return reply.code(400).send({ error: 'Source code is required' });
+      throw new ValidationException({ error: 'Source code is required' });
     }
 
     const result = await chainlinkService.simulateFunctionsScript(sourceCode, args || []);
 
-    if (result.success) {
-      return reply.send(result);
-    } else {
-      return reply.code(500).send(result);
-    }
+    return reply.send(ApiResponse.success(result));
   });
 
   // Get Functions config
   fastify.get('/chainlink/functions/config', async (request, reply) => {
     const result = chainlinkService.getFunctionsConfig();
-    return reply.send(result);
+    return reply.send(ApiResponse.success(result));
   });
 
   // UMA Routes
@@ -129,16 +111,12 @@ const oracleRoutes: FastifyPluginAsync = async (fastify) => {
     };
 
     if (!marketId || !question || !resolutionTime) {
-      return reply.code(400).send({ error: 'Market ID, question, and resolution time are required' });
+      throw new ValidationException({ error: 'Market ID, question, and resolution time are required' });
     }
 
     const result = await umaService.requestMarketResolution(marketId, question, resolutionTime);
 
-    if (result.success) {
-      return reply.send(result);
-    } else {
-      return reply.code(500).send(result);
-    }
+    return reply.send(ApiResponse.success(result));
   });
 
   // Propose market outcome
@@ -150,16 +128,12 @@ const oracleRoutes: FastifyPluginAsync = async (fastify) => {
     };
 
     if (!marketId || !outcome) {
-      return reply.code(400).send({ error: 'Market ID and outcome are required' });
+      throw new ValidationException({ error: 'Market ID and outcome are required' });
     }
 
     const result = await umaService.proposeMarketOutcome(marketId, outcome, evidence);
 
-    if (result.success) {
-      return reply.send(result);
-    } else {
-      return reply.code(500).send(result);
-    }
+    return reply.send(ApiResponse.success(result));
   });
 
   // Dispute market outcome
@@ -170,16 +144,12 @@ const oracleRoutes: FastifyPluginAsync = async (fastify) => {
     };
 
     if (!marketId || !reason) {
-      return reply.code(400).send({ error: 'Market ID and dispute reason are required' });
+      throw new ValidationException({ error: 'Market ID and dispute reason are required' });
     }
 
     const result = await umaService.disputeMarketOutcome(marketId, reason);
 
-    if (result.success) {
-      return reply.send(result);
-    } else {
-      return reply.code(500).send(result);
-    }
+    return reply.send(ApiResponse.success(result));
   });
 
   // Settle market
@@ -187,16 +157,12 @@ const oracleRoutes: FastifyPluginAsync = async (fastify) => {
     const { marketId } = request.body as { marketId: string };
 
     if (!marketId) {
-      return reply.code(400).send({ error: 'Market ID is required' });
+      throw new ValidationException({ error: 'Market ID is required' });
     }
 
     const result = await umaService.settleMarket(marketId);
 
-    if (result.success) {
-      return reply.send(result);
-    } else {
-      return reply.code(500).send(result);
-    }
+    return reply.send(ApiResponse.success(result));
   });
 
   // Get market request status
@@ -209,17 +175,13 @@ const oracleRoutes: FastifyPluginAsync = async (fastify) => {
 
     const result = await umaService.getMarketRequest(marketId, identifier, parseInt(timestamp));
 
-    if (result.success) {
-      return reply.send(result);
-    } else {
-      return reply.code(500).send(result);
-    }
+    return reply.send(ApiResponse.success(result));
   });
 
   // Get UMA oracle info
   fastify.get('/uma/info', async (request, reply) => {
     const result = await umaService.getOptimisticOracleInfo();
-    return reply.send(result);
+    return reply.send(ApiResponse.success(result));
   });
 
   // General oracle resolution endpoint
@@ -231,17 +193,17 @@ const oracleRoutes: FastifyPluginAsync = async (fastify) => {
     };
 
     if (!marketId || !oracleType) {
-      return reply.code(400).send({ error: 'Market ID and oracle type are required' });
+      throw new ValidationException({ error: 'Market ID and oracle type are required' });
     }
 
     if (oracleType === 'chainlink') {
       const result = await chainlinkService.validatePriceForMarket(marketId, params.expectedPrice, params.tolerance);
-      return reply.send(result);
+      return reply.send(ApiResponse.success(result));
     } else if (oracleType === 'uma') {
       const result = await umaService.settleMarket(marketId);
-      return reply.send(result);
+      return reply.send(ApiResponse.success(result));
     } else {
-      return reply.code(400).send({ error: 'Invalid oracle type' });
+      throw new ValidationException({ error: 'Invalid oracle type' });
     }
   });
 

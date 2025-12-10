@@ -1,5 +1,7 @@
 import { ethers } from 'ethers';
 import { config } from '../config';
+import { ExternalServiceException, BusinessException } from '../common/exception/AppException';
+import { ResponseCode } from '../common/response/ResponseCode';
 
 // UMA OptimisticOracle V3 ABI (simplified)
 const UMA_ORACLE_ABI = [
@@ -23,24 +25,18 @@ class UMAService {
   async requestMarketResolution(marketId: string, question: string, resolutionTime: number) {
     try {
       const oracle = new ethers.Contract(this.oracleAddress, UMA_ORACLE_ABI, this.provider);
-      
+
       // Create identifier for the market question
       const identifier = ethers.id(question);
-      const ancillaryData = ethers.toUtf8Bytes(JSON.stringify({
-        marketId,
-        question,
-        type: 'prediction-market'
-      }));
-      
+
       // USDC address on Polygon as currency
       const currency = '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174';
       const reward = ethers.parseUnits('10', 6); // 10 USDC reward
-      
+
       // This would require a signer with funds
       // const tx = await oracle.requestPrice(identifier, resolutionTime, ancillaryData, currency, reward);
-      
+
       return {
-        success: true,
         marketId,
         identifier: identifier,
         resolutionTime,
@@ -50,22 +46,18 @@ class UMAService {
         // transactionHash: tx.hash
       };
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to request market resolution'
-      };
+      throw new ExternalServiceException(error instanceof Error ? error.message : 'Failed to request market resolution');
     }
   }
 
   async proposeMarketOutcome(marketId: string, outcome: string, evidence?: string) {
     try {
       // Convert outcome to price format (e.g., "YES" = 1e18, "NO" = 0)
-      const proposedPrice = outcome.toLowerCase() === 'yes' ? 
-        ethers.parseEther('1') : 
+      const proposedPrice = outcome.toLowerCase() === 'yes' ?
+        ethers.parseEther('1') :
         ethers.parseEther('0');
-      
+
       return {
-        success: true,
         marketId,
         outcome,
         proposedPrice: ethers.formatEther(proposedPrice),
@@ -73,75 +65,54 @@ class UMAService {
         message: 'Outcome proposal would be submitted to UMA Oracle'
       };
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to propose outcome'
-      };
+      throw new ExternalServiceException(error instanceof Error ? error.message : 'Failed to propose outcome');
     }
   }
 
   async disputeMarketOutcome(marketId: string, reason: string) {
     try {
       return {
-        success: true,
         marketId,
         reason,
         message: 'Dispute would be submitted to UMA Oracle',
         disputePeriod: '48 hours'
       };
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to dispute outcome'
-      };
+      throw new ExternalServiceException(error instanceof Error ? error.message : 'Failed to dispute outcome');
     }
   }
 
   async settleMarket(marketId: string) {
     try {
       return {
-        success: true,
         marketId,
         finalOutcome: 'pending',
         message: 'Market settlement would be executed via UMA Oracle'
       };
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to settle market'
-      };
+      throw new ExternalServiceException(error instanceof Error ? error.message : 'Failed to settle market');
     }
   }
 
   async getMarketRequest(marketId: string, identifier: string, timestamp: number) {
     try {
       const oracle = new ethers.Contract(this.oracleAddress, UMA_ORACLE_ABI, this.provider);
-      
-      const ancillaryData = ethers.toUtf8Bytes(JSON.stringify({
-        marketId,
-        type: 'prediction-market'
-      }));
-      
+
       // This would fetch the actual request data
       // const request = await oracle.getRequest(requester, identifier, timestamp, ancillaryData);
-      
+
       return {
-        success: true,
         marketId,
         status: 'pending',
         message: 'Request data would be fetched from UMA Oracle'
       };
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to get market request'
-      };
+      throw new ExternalServiceException(error instanceof Error ? error.message : 'Failed to get market request');
     }
   }
 
   async getOptimisticOracleInfo() {
     return {
-      success: true,
       oracleAddress: this.oracleAddress,
       network: 'Polygon',
       version: 'OptimisticOracle V3',

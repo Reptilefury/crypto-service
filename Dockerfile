@@ -1,7 +1,8 @@
-FROM node:20-alpine
+FROM node:20-alpine3.20
 
-# Install build dependencies for native modules
-RUN apk add --no-cache python3 make g++
+# Install build dependencies for native modules and security updates
+RUN apk add --no-cache python3 make g++ && \
+    apk upgrade --no-cache
 
 WORKDIR /app
 
@@ -17,8 +18,8 @@ COPY . .
 # Build TypeScript
 RUN npm run build
 
-# Remove dev dependencies to reduce image size
-RUN npm prune --omit=dev
+# Remove dev dependencies to reduce image size and clean caches to minimize scanner noise
+RUN npm prune --omit=dev && npm cache clean --force && rm -rf /root/.npm /root/.cache
 
 # Expose port
 EXPOSE 3001

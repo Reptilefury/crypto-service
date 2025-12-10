@@ -1,7 +1,8 @@
 import { ethers } from 'ethers';
 import { config } from '../config';
-import { simulateScript, decodeResult } from '@chainlink/functions-toolkit';
-import { ReturnType } from '@chainlink/functions-toolkit/dist/types';
+import { simulateScript, decodeResult, ReturnType } from '@chainlink/functions-toolkit';
+import { ExternalServiceException, BusinessException } from '../common/exception/AppException';
+import { ResponseCode } from '../common/response/ResponseCode';
 
 // Chainlink Price Feed ABI (simplified)
 const PRICE_FEED_ABI = [
@@ -43,10 +44,7 @@ class ChainlinkService {
       const feedAddress = PRICE_FEEDS[symbol as keyof typeof PRICE_FEEDS];
 
       if (!feedAddress) {
-        return {
-          success: false,
-          error: `Price feed not available for ${symbol}`
-        };
+        throw new BusinessException(ResponseCode.NOT_FOUND, `Price feed not available for ${symbol}`);
       }
 
       const priceFeed = new ethers.Contract(feedAddress, PRICE_FEED_ABI, this.provider);
@@ -62,24 +60,19 @@ class ChainlinkService {
       const price = ethers.formatUnits(answer, decimals);
 
       return {
-        success: true,
-        data: {
-          symbol,
-          price,
-          decimals: Number(decimals),
-          roundId: roundId.toString(),
-          updatedAt: new Date(Number(updatedAt) * 1000).toISOString(),
-          feedAddress,
-          isStale,
-          staleness: currentTime - Number(updatedAt),
-          heartbeat
-        }
+        symbol,
+        price,
+        decimals: Number(decimals),
+        roundId: roundId.toString(),
+        updatedAt: new Date(Number(updatedAt) * 1000).toISOString(),
+        feedAddress,
+        isStale,
+        staleness: currentTime - Number(updatedAt),
+        heartbeat
       };
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch price'
-      };
+      if (error instanceof BusinessException) throw error;
+      throw new ExternalServiceException(error instanceof Error ? error.message : 'Failed to fetch price');
     }
   }
 
@@ -96,24 +89,13 @@ class ChainlinkService {
     comparisonType: 'above' | 'below' = 'above'
   ) {
     try {
-      const priceResult = await this.getPrice(symbol);
+      const priceData = await this.getPrice(symbol);
 
-      if (!priceResult.success || !priceResult.data) {
-        return {
-          success: false,
-          error: 'Failed to fetch price for validation'
-        };
-      }
-
-      const { price, isStale, updatedAt } = priceResult.data;
+      const { price, isStale, updatedAt } = priceData;
 
       // Don't allow stale data for market resolution
       if (isStale) {
-        return {
-          success: false,
-          error: 'Price data is stale - cannot resolve market',
-          staleness: priceResult.data.staleness
-        };
+        throw new BusinessException(ResponseCode.SERVICE_UNAVAILABLE, 'Price data is stale - cannot resolve market', { staleness: priceData.staleness });
       }
 
       const currentPrice = parseFloat(price);
@@ -124,7 +106,6 @@ class ChainlinkService {
         : currentPrice < target;
 
       return {
-        success: true,
         symbol,
         currentPrice: price,
         targetPrice,
@@ -134,10 +115,8 @@ class ChainlinkService {
         message: `Price ${conditionMet ? 'meets' : 'does not meet'} condition: ${symbol} ${comparisonType} ${targetPrice}`
       };
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Price validation failed'
-      };
+      if (error instanceof BusinessException || error instanceof ExternalServiceException) throw error;
+      throw new ExternalServiceException(error instanceof Error ? error.message : 'Price validation failed');
     }
   }
 
@@ -162,26 +141,13 @@ class ChainlinkService {
       if (resolutionTime) {
         const currentTime = Math.floor(Date.now() / 1000);
         if (currentTime < resolutionTime) {
-          return {
-            success: false,
-            error: 'Resolution time has not been reached yet',
-            resolutionTime: new Date(resolutionTime * 1000).toISOString()
-          };
+          throw new BusinessException(ResponseCode.BAD_REQUEST, 'Resolution time has not been reached yet', { resolutionTime: new Date(resolutionTime * 1000).toISOString() });
         }
       }
 
       const validation = await this.validatePriceForMarket(symbol, targetPrice, comparisonType);
 
-      if (!validation.success) {
-        return {
-          success: false,
-          marketId,
-          error: validation.error
-        };
-      }
-
       return {
-        success: true,
         marketId,
         resolved: true,
         outcome: validation.conditionMet ? 'YES' : 'NO',
@@ -193,11 +159,8 @@ class ChainlinkService {
         message: `Market resolved: ${validation.message}`
       };
     } catch (error) {
-      return {
-        success: false,
-        marketId,
-        error: error instanceof Error ? error.message : 'Market resolution failed'
-      };
+      if (error instanceof BusinessException || error instanceof ExternalServiceException) throw error;
+      throw new ExternalServiceException(error instanceof Error ? error.message : 'Market resolution failed');
     }
   }
 
@@ -210,25 +173,17 @@ class ChainlinkService {
    */
   async checkPriceBounds(symbol: string, minPrice: string, maxPrice: string) {
     try {
-      const priceResult = await this.getPrice(symbol);
+      const priceData = await this.getPrice(symbol);
 
-      if (!priceResult.success || !priceResult.data) {
-        return {
-          success: false,
-          error: 'Failed to fetch price'
-        };
-      }
-
-      const currentPrice = parseFloat(priceResult.data.price);
+      const currentPrice = parseFloat(priceData.price);
       const min = parseFloat(minPrice);
       const max = parseFloat(maxPrice);
 
       const withinBounds = currentPrice >= min && currentPrice <= max;
 
       return {
-        success: true,
         symbol,
-        currentPrice: priceResult.data.price,
+        currentPrice: priceData.price,
         minPrice,
         maxPrice,
         withinBounds,
@@ -237,10 +192,8 @@ class ChainlinkService {
           : `Price ${currentPrice} is outside bounds [${min}, ${max}]`
       };
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Bounds check failed'
-      };
+      if (error instanceof BusinessException || error instanceof ExternalServiceException) throw error;
+      throw new ExternalServiceException(error instanceof Error ? error.message : 'Bounds check failed');
     }
   }
 
@@ -249,7 +202,6 @@ class ChainlinkService {
    */
   getAvailableFeeds() {
     return {
-      success: true,
       feeds: Object.keys(PRICE_FEEDS).map(symbol => ({
         symbol,
         address: PRICE_FEEDS[symbol as keyof typeof PRICE_FEEDS],
@@ -289,12 +241,7 @@ class ChainlinkService {
       });
 
       if (simulationResult.errorString) {
-        return {
-          success: false,
-          marketId,
-          error: simulationResult.errorString,
-          logs: simulationResult.capturedTerminalOutput
-        };
+        throw new ExternalServiceException(simulationResult.errorString, { logs: simulationResult.capturedTerminalOutput });
       }
 
       // Decode result (assuming string response for now)
@@ -302,7 +249,6 @@ class ChainlinkService {
       const resultString = simulationResult.responseBytesHexstring;
 
       return {
-        success: true,
         marketId,
         status: 'simulated_success',
         result: resultString,
@@ -311,11 +257,8 @@ class ChainlinkService {
         message: 'Chainlink Functions simulation successful'
       };
     } catch (error) {
-      return {
-        success: false,
-        marketId,
-        error: error instanceof Error ? error.message : 'Functions request failed'
-      };
+      if (error instanceof ExternalServiceException) throw error;
+      throw new ExternalServiceException(error instanceof Error ? error.message : 'Functions request failed');
     }
   }
 
@@ -334,17 +277,17 @@ class ChainlinkService {
         secrets: {}
       });
 
+      if (result.errorString) {
+        throw new ExternalServiceException(result.errorString, { logs: result.capturedTerminalOutput });
+      }
+
       return {
-        success: !result.errorString,
         result: result.responseBytesHexstring,
-        error: result.errorString,
         logs: result.capturedTerminalOutput
       };
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Simulation failed'
-      };
+      if (error instanceof ExternalServiceException) throw error;
+      throw new ExternalServiceException(error instanceof Error ? error.message : 'Simulation failed');
     }
   }
 
@@ -353,7 +296,6 @@ class ChainlinkService {
    */
   getFunctionsConfig() {
     return {
-      success: true,
       config: config.chainlink.functions
     };
   }

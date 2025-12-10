@@ -1,5 +1,6 @@
 import chainlinkService from '../../src/services/chainlink';
 import { simulateScript } from '@chainlink/functions-toolkit';
+import { ExternalServiceException } from '../../src/common/exception/AppException';
 
 // Mock @chainlink/functions-toolkit
 jest.mock('@chainlink/functions-toolkit', () => ({
@@ -27,7 +28,6 @@ describe('ChainlinkService - Functions', () => {
                 'return Functions.encodeUint256(1);'
             );
 
-            expect(result.success).toBe(true);
             expect(result.status).toBe('simulated_success');
             expect(result.result).toBe(mockResult.responseBytesHexstring);
             expect(simulateScript).toHaveBeenCalledWith(expect.objectContaining({
@@ -44,14 +44,11 @@ describe('ChainlinkService - Functions', () => {
             };
             (simulateScript as jest.Mock).mockResolvedValue(mockResult);
 
-            const result = await chainlinkService.requestFunctionsResolution(
+            await expect(chainlinkService.requestFunctionsResolution(
                 'market-123',
                 'https://api.example.com',
                 'throw Error("Fail");'
-            );
-
-            expect(result.success).toBe(false);
-            expect(result.error).toBe('Simulation failed');
+            )).rejects.toThrow(ExternalServiceException);
         });
     });
 
@@ -69,7 +66,6 @@ describe('ChainlinkService - Functions', () => {
                 ['arg1']
             );
 
-            expect(result.success).toBe(true);
             expect(result.result).toBe('0x1234');
         });
     });
@@ -77,7 +73,6 @@ describe('ChainlinkService - Functions', () => {
     describe('getFunctionsConfig', () => {
         it('should return functions configuration', () => {
             const result = chainlinkService.getFunctionsConfig();
-            expect(result.success).toBe(true);
             expect(result.config).toBeDefined();
             expect(result.config.routerAddress).toBeDefined();
         });

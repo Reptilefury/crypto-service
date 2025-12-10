@@ -17,7 +17,7 @@
     "@biconomy/account": "^4.5.0",
     "@biconomy/bundler": "^3.1.4",
     "@biconomy/common": "^3.1.4",
-    "@chainlink/contracts": "^1.0.0",
+    "@chainlink/contracts": "^1.4.0",
     "@chainlink/functions-toolkit": "^0.3.2",
     "@fastify/cors": "^9.0.0",
     "@magic-sdk/admin": "^2.0.0",
@@ -35,10 +35,18 @@
     "secp256k1": "^5.0.1",
     "web3-utils": "^4.2.1",
     "ws": "^8.17.1",
+    "glob": "^11.1.0",
+    "@openzeppelin/contracts": "^4.8.3",
+    "@openzeppelin/contracts-upgradeable": "^4.8.3",
+    "test-exclude": "^7.0.0",
+    "babel-plugin-istanbul": "^7.0.0",
+    "cross-spawn": "^7.0.5",
     "@chainlink/functions-toolkit": {
       "elliptic": "^6.6.1",
       "secp256k1": "^5.0.1",
-      "ws": "^8.17.1"
+      "ws": "^8.17.1",
+      "glob": "^11.1.0",
+      "cross-spawn": "^7.0.5"
     },
     "eth-crypto": {
       "elliptic": "^6.6.1",
@@ -52,7 +60,16 @@
       "web3-utils": "^4.2.1"
     },
     "ganache": {
-      "ws": "^8.17.1"
+      "ws": "^8.17.1",
+      "secp256k1": "^5.0.1",
+      "glob": "^11.1.0",
+      "cross-spawn": "^7.0.5"
+    },
+    "typechain": {
+      "glob": "^11.1.0"
+    },
+    "mocha": {
+      "glob": "^11.1.0"
     }
   },
   "devDependencies": {

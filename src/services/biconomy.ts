@@ -1,6 +1,8 @@
 import { BiconomySmartAccountV2, PaymasterMode } from '@biconomy/account';
 import { ethers } from 'ethers';
 import { config } from '../config';
+import { ExternalServiceException, BusinessException } from '../common/exception/AppException';
+import { ResponseCode } from '../common/response/ResponseCode';
 
 class BiconomyService {
   private provider: any;
@@ -36,16 +38,12 @@ class BiconomyService {
       const smartAccountAddress = await smartAccount.getAccountAddress();
 
       return {
-        success: true,
         smartAccount,
         smartAccountAddress,
         message: 'Smart account created successfully'
       };
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to create smart account'
-      };
+      throw new ExternalServiceException(error instanceof Error ? error.message : 'Failed to create smart account');
     }
   }
 
@@ -64,16 +62,12 @@ class BiconomyService {
       });
 
       return {
-        success: true,
         smartAccountAddress,
         bundlerUrl: this.bundlerUrl,
         note: 'Use createUserWallet() with actual signer for full Smart Account'
       };
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to get smart account address'
-      };
+      throw new BusinessException(ResponseCode.BAD_REQUEST, error instanceof Error ? error.message : 'Failed to get smart account address');
     }
   }
 
@@ -109,17 +103,13 @@ class BiconomyService {
       const receipt = await smartAccount.sendUserOp(userOp);
 
       return {
-        success: true,
         userOpHash: receipt.userOpHash,
         amount,
         escrowAddress,
         message: 'Transfer to escrow successful'
       };
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Transfer failed'
-      };
+      throw new ExternalServiceException(error instanceof Error ? error.message : 'Transfer failed');
     }
   }
 
@@ -138,16 +128,12 @@ class BiconomyService {
       const receipt = await smartAccount.sendUserOp(userOp);
 
       return {
-        success: true,
         userOpHash: receipt.userOpHash,
         transaction,
         message: 'Transaction executed successfully via Biconomy bundler'
       };
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Transaction failed'
-      };
+      throw new ExternalServiceException(error instanceof Error ? error.message : 'Transaction failed');
     }
   }
 
