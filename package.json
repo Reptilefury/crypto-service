@@ -37,6 +37,8 @@
     "ws": "^8.17.1",
     "glob": "^11.1.0",
     "@openzeppelin/contracts": "^4.8.3",
+    "test-exclude": "^7.0.0",
+    "babel-plugin-istanbul": "^7.0.0",
     "@chainlink/functions-toolkit": {
       "elliptic": "^6.6.1",
       "secp256k1": "^5.0.1",
