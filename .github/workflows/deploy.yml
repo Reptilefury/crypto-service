@@ -62,6 +62,14 @@ jobs:
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         
+    - name: Check GCP Secrets
+      run: |
+        if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
+          echo "❌ GCP_SA_KEY secret is not set!"
+          echo "Please add the GCP service account key secret to the repository."
+          exit 1
+        fi
+        
     - name: Auth to Google Cloud
       uses: google-github-actions/auth@v2
       with:
@@ -97,6 +105,14 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+    
+    - name: Check GCP Secrets
+      run: |
+        if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
+          echo "❌ GCP_SA_KEY secret is not set!"
+          echo "Please add the GCP service account key secret to the repository."
+          exit 1
+        fi
     
     - name: Auth to Google Cloud
       uses: google-github-actions/auth@v2
