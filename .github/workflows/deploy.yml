@@ -10,7 +10,8 @@ env:
   PROJECT_ID: heroic-equinox-474616-i5
   SERVICE_NAME: crypto-service
   REGION: us-central1
-  REGISTRY: gcr.io
+  REGISTRY: us-docker.pkg.dev
+  REPOSITORY: gcr.io
 
 jobs:
   pre-deployment-checks:
@@ -78,8 +79,8 @@ jobs:
     - name: Setup Cloud SDK
       uses: google-github-actions/setup-gcloud@v2
       
-    - name: Configure Docker for GCR
-      run: gcloud auth configure-docker gcr.io
+    - name: Configure Docker for Artifact Registry
+      run: gcloud auth configure-docker us-docker.pkg.dev
       
     - name: Verify GCR permissions
       run: |
@@ -88,7 +89,7 @@ jobs:
       
     - name: Build Production Image
       run: |
-        docker build -t $REGISTRY/$PROJECT_ID/$SERVICE_NAME:${{ github.sha }} .
+        docker build -t $REGISTRY/$PROJECT_ID/$REPOSITORY/$SERVICE_NAME:${{ github.sha }} .
         
     - name: Install Trivy CLI
       run: |
@@ -112,7 +113,7 @@ jobs:
           --scanners vuln \
           --ignorefile .trivyignore \
           --skip-dirs /root/.npm,/root/.cache,/usr/local/lib/node_modules \
-          $REGISTRY/$PROJECT_ID/$SERVICE_NAME:${{ github.sha }} \
+          $REGISTRY/$PROJECT_ID/$REPOSITORY/$SERVICE_NAME:${{ github.sha }} \
         || echo "Trivy scan completed with non-zero exit (expected when vulns exist)"
 
     - name: Detect patchable vs unpatchable vulnerabilities
