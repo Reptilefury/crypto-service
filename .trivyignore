@@ -1,0 +1,4 @@
+# Ignore system vulnerabilities that can't be fixed in Alpine base image
+CVE-2025-46569
+# Ignore private key detection (false positive for test keys)
+AsymmetricPrivateKey
