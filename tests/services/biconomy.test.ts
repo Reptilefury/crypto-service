@@ -20,7 +20,6 @@ describe('BiconomyService', () => {
 
       const result = await biconomyService.getSmartAccountAddress(userAddress);
 
-      expect(result.success).toBe(true);
       expect(result.smartAccountAddress).toBeDefined();
     });
   });
@@ -36,7 +35,6 @@ describe('BiconomyService', () => {
 
       const result = await biconomyService.executeTransaction(smartAccount, transaction);
 
-      expect(result.success).toBe(true);
       expect(result.userOpHash).toBeDefined();
     });
   });

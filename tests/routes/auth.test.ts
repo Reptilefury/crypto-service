@@ -1,11 +1,14 @@
 import Fastify from 'fastify';
 import authRoutes from '../../src/routes/auth';
 
+import { errorHandler } from '../../src/middleware/errorHandler';
+
 describe('Auth Routes', () => {
   let fastify: any;
 
   beforeEach(async () => {
     fastify = Fastify();
+    fastify.setErrorHandler(errorHandler);
     await fastify.register(authRoutes, { prefix: '/auth' });
   });
 
@@ -25,7 +28,8 @@ describe('Auth Routes', () => {
 
       expect(response.statusCode).toBe(200);
       const result = JSON.parse(response.payload);
-      expect(result.success).toBe(true);
+      expect(result.status).toBe('SUCCESS');
+      expect(result.data.user).toBeDefined();
     });
 
     it('should return 400 for missing DID token', async () => {
@@ -37,7 +41,8 @@ describe('Auth Routes', () => {
 
       expect(response.statusCode).toBe(400);
       const result = JSON.parse(response.payload);
-      expect(result.error).toBe('DID token is required');
+      expect(result.status).toBe('ERROR');
+      expect(result.error.code).toBe('VALIDATION_ERROR');
     });
   });
 

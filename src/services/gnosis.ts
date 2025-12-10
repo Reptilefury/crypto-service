@@ -1,6 +1,8 @@
 import { ethers } from 'ethers';
 import Safe from '@safe-global/protocol-kit';
 import { config } from '../config';
+import { ExternalServiceException, BusinessException } from '../common/exception/AppException';
+import { ResponseCode } from '../common/response/ResponseCode';
 
 // USDC address on Polygon
 const USDC_ADDRESS = '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174';
@@ -59,7 +61,6 @@ class GnosisService {
       const safeAddress = await safe.getAddress();
 
       return {
-        success: true,
         safeAddress,
         owners: safeOwners,
         threshold,
@@ -67,10 +68,7 @@ class GnosisService {
         note: 'Safe will be deployed on first transaction. Use deploySafe() to deploy immediately.'
       };
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to create escrow safe'
-      };
+      throw new ExternalServiceException(error instanceof Error ? error.message : 'Failed to create escrow safe');
     }
   }
 
@@ -111,7 +109,6 @@ class GnosisService {
       const txHash = txResponse.hash;
 
       return {
-        success: true,
         transactionHash: txHash,
         safeAddress: escrowSafeAddress,
         recipient,
@@ -119,10 +116,7 @@ class GnosisService {
         message: 'Escrow released successfully'
       };
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to release escrow'
-      };
+      throw new ExternalServiceException(error instanceof Error ? error.message : 'Failed to release escrow');
     }
   }
 
@@ -151,7 +145,6 @@ class GnosisService {
       const txHash = await safe.getTransactionHash(safeTx);
 
       return {
-        success: true,
         transactionHash: txHash,
         safeAddress,
         transaction,
@@ -159,10 +152,7 @@ class GnosisService {
         note: 'Requires threshold signatures to execute'
       };
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to propose transaction'
-      };
+      throw new ExternalServiceException(error instanceof Error ? error.message : 'Failed to propose transaction');
     }
   }
 
@@ -191,21 +181,15 @@ class GnosisService {
       const balanceFormatted = ethers.formatUnits(balance, 6);
 
       return {
-        success: true,
-        data: {
-          address: safeAddress,
-          owners,
-          threshold,
-          nonce,
-          usdcBalance: balanceFormatted,
-          chainId: config.blockchain.chainId
-        }
+        address: safeAddress,
+        owners,
+        threshold,
+        nonce,
+        usdcBalance: balanceFormatted,
+        chainId: config.blockchain.chainId
       };
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to get safe info'
-      };
+      throw new BusinessException(ResponseCode.NOT_FOUND, error instanceof Error ? error.message : 'Failed to get safe info');
     }
   }
 
@@ -221,16 +205,12 @@ class GnosisService {
       const balanceFormatted = ethers.formatUnits(balance, 6);
 
       return {
-        success: true,
         safeAddress,
         usdcBalance: balanceFormatted,
         usdcAddress: USDC_ADDRESS
       };
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to get balance'
-      };
+      throw new ExternalServiceException(error instanceof Error ? error.message : 'Failed to get balance');
     }
   }
 }

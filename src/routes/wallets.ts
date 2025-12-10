@@ -1,5 +1,7 @@
 import { FastifyPluginAsync } from 'fastify';
 import biconomyService from '../services/biconomy';
+import { ApiResponse } from '../common/response/ApiResponse';
+import { ValidationException } from '../common/exception/AppException';
 
 const walletRoutes: FastifyPluginAsync = async (fastify) => {
 
@@ -8,18 +10,14 @@ const walletRoutes: FastifyPluginAsync = async (fastify) => {
     const { userAddress } = request.body as { userAddress: string };
 
     if (!userAddress) {
-      return reply.code(400).send({ error: 'User address is required' });
+      throw new ValidationException({ userAddress: 'User address is required' });
     }
 
     // For creation, we need a signer, but here we just return the deterministic address
     // In a real app, this endpoint would likely receive a signed message or be authenticated
     const result = await biconomyService.getSmartAccountAddress(userAddress);
 
-    if (result.success) {
-      return reply.send(result);
-    } else {
-      return reply.code(500).send(result);
-    }
+    return reply.send(ApiResponse.success(result));
   });
 
   // Get smart account address
@@ -28,11 +26,7 @@ const walletRoutes: FastifyPluginAsync = async (fastify) => {
 
     const result = await biconomyService.getSmartAccountAddress(userAddress);
 
-    if (result.success) {
-      return reply.send(result);
-    } else {
-      return reply.code(500).send(result);
-    }
+    return reply.send(ApiResponse.success(result));
   });
 
   // Execute gasless transaction
@@ -43,16 +37,12 @@ const walletRoutes: FastifyPluginAsync = async (fastify) => {
     };
 
     if (!smartAccount || !transaction) {
-      return reply.code(400).send({ error: 'Smart account and transaction are required' });
+      throw new ValidationException({ error: 'Smart account and transaction are required' });
     }
 
     const result = await biconomyService.executeTransaction(smartAccount, transaction);
 
-    if (result.success) {
-      return reply.send(result);
-    } else {
-      return reply.code(500).send(result);
-    }
+    return reply.send(ApiResponse.success(result));
   });
 
 };

@@ -10,11 +10,15 @@ import oracleRoutes from './routes/oracles';
 
 dotenv.config();
 
+import { errorHandler } from './middleware/errorHandler';
+
 const fastify = Fastify({
   logger: {
     level: process.env.NODE_ENV === 'production' ? 'info' : 'debug'
   }
 });
+
+fastify.setErrorHandler(errorHandler);
 
 // Register CORS
 fastify.register(cors, {

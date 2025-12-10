@@ -1,5 +1,6 @@
 import { Magic } from '@magic-sdk/admin';
 import { config } from '../config';
+import { UnauthorizedException, NotFoundException, ExternalServiceException } from '../common/exception/AppException';
 
 class MagicService {
   private magic: Magic;
@@ -12,33 +13,23 @@ class MagicService {
     try {
       this.magic.token.validate(didToken);
       const metadata = await this.magic.users.getMetadataByToken(didToken);
-      
+
       return {
-        isValid: true,
         userId: metadata.issuer,
         email: metadata.email,
         walletAddress: metadata.publicAddress
       };
     } catch (error) {
-      return {
-        isValid: false,
-        error: error instanceof Error ? error.message : 'Invalid token'
-      };
+      throw new UnauthorizedException(error instanceof Error ? error.message : 'Invalid token');
     }
   }
 
   async getUserMetadata(userId: string) {
     try {
       const metadata = await this.magic.users.getMetadataByIssuer(userId);
-      return {
-        success: true,
-        data: metadata
-      };
+      return metadata;
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to get user metadata'
-      };
+      throw new NotFoundException(error instanceof Error ? error.message : 'User not found');
     }
   }
 }
