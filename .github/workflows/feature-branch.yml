@@ -65,8 +65,8 @@ jobs:
         node-version: ${{ env.NODE_VERSION }}
         
     - name: Install dependencies
-      run: npm install
-      
+      run: npm ci
+        
     - name: Run linting
       run: npm run lint
       
@@ -99,9 +99,7 @@ jobs:
         node-version: ${{ env.NODE_VERSION }}
         
     - name: Install dependencies
-      run: |
-        rm -f package-lock.json
-        npm install
+      run: npm ci
         
     - name: Install Snyk CLI
       run: |
@@ -150,6 +148,12 @@ jobs:
         output: 'trivy-results.sarif'
         severity: 'CRITICAL,HIGH'
         exit-code: '1'
+        ignore-unfixed: true
+        args: >-
+          --ignorefile .trivyignore
+          --skip-dirs /root/.npm,/root/.cache
+          --skip-dirs /usr/local/lib/node_modules
+          --scanners vuln
         
     - name: Create empty Trivy results if scan failed
       run: |

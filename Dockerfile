@@ -18,8 +18,8 @@ COPY . .
 # Build TypeScript
 RUN npm run build
 
-# Remove dev dependencies to reduce image size
-RUN npm prune --omit=dev
+# Remove dev dependencies to reduce image size and clean caches to minimize scanner noise
+RUN npm prune --omit=dev && npm cache clean --force && rm -rf /root/.npm /root/.cache
 
 # Expose port
 EXPOSE 3001
