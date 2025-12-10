@@ -14,21 +14,50 @@
     "lint:fix": "eslint src/**/*.ts --fix"
   },
   "dependencies": {
-    "@magic-sdk/admin": "^2.0.0",
-    "@biconomy/smart-account": "^4.0.0",
-    "@safe-global/api-kit": "^2.0.0",
-    "@safe-global/protocol-kit": "^4.0.0",
-    "ethers": "^6.0.0",
-    "fastify": "^4.0.0",
-    "node-fetch": "^3.0.0",
+    "@biconomy/account": "^4.5.0",
+    "@biconomy/bundler": "^3.1.4",
+    "@biconomy/common": "^3.1.4",
     "@chainlink/contracts": "^1.0.0",
-    "@uma/sdk": "^1.0.0",
+    "@chainlink/functions-toolkit": "^0.3.2",
     "@fastify/cors": "^9.0.0",
-    "dotenv": "^16.0.0"
+    "@magic-sdk/admin": "^2.0.0",
+    "@safe-global/protocol-kit": "^6.1.2",
+    "@safe-global/safe-core-sdk": "^3.3.5",
+    "@safe-global/safe-core-sdk-types": "^5.1.0",
+    "@safe-global/safe-ethers-lib": "^1.9.4",
+    "axios": "^1.13.2",
+    "dotenv": "^16.0.0",
+    "ethers": "^6.0.0",
+    "fastify": "^4.0.0"
+  },
+  "overrides": {
+    "elliptic": "^6.6.1",
+    "secp256k1": "^5.0.1",
+    "web3-utils": "^4.2.1",
+    "ws": "^8.17.1",
+    "@chainlink/functions-toolkit": {
+      "elliptic": "^6.6.1",
+      "secp256k1": "^5.0.1",
+      "ws": "^8.17.1"
+    },
+    "eth-crypto": {
+      "elliptic": "^6.6.1",
+      "secp256k1": "^5.0.1"
+    },
+    "eccrypto": {
+      "elliptic": "^6.6.1",
+      "secp256k1": "^5.0.1"
+    },
+    "@biconomy/common": {
+      "web3-utils": "^4.2.1"
+    },
+    "ganache": {
+      "ws": "^8.17.1"
+    }
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
     "@types/jest": "^29.0.0",
+    "@types/node": "^20.0.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "eslint": "^8.0.0",

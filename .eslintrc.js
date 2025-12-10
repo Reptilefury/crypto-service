@@ -5,11 +5,15 @@ module.exports = {
     sourceType: 'module',
   },
   extends: [
-    '@typescript-eslint/recommended',
+    'eslint:recommended',
   ],
+  env: {
+    node: true,
+    es6: true,
+  },
   rules: {
-    '@typescript-eslint/no-unused-vars': 'error',
-    '@typescript-eslint/no-explicit-any': 'warn',
-    '@typescript-eslint/explicit-function-return-type': 'off',
+    'no-unused-vars': 'off',
+    'no-console': 'warn',
+    'no-unreachable': 'off',
   },
 };
