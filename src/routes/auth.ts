@@ -1,6 +1,7 @@
 import { FastifyPluginAsync } from 'fastify';
 import magicService from '../services/magic';
 import { ApiResponse } from '../common/response/ApiResponse';
+import { ResponseCode } from '../common/response/ResponseCode';
 import { ValidationException } from '../common/exception/AppException';
 
 const authRoutes: FastifyPluginAsync = async (fastify) => {
@@ -19,9 +20,16 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       user: {
         id: result.userId,
         email: result.email,
-        walletAddress: result.walletAddress
+        walletAddress: result.walletAddress,
+        subject: result.subject,
+        audience: result.audience,
+        issuedAt: result.issuedAt,
+        expiresAt: result.expiresAt,
+        notBefore: result.notBefore,
+        tokenId: result.tokenId,
+        additionalData: result.additionalData
       }
-    }));
+    }, ResponseCode.USER_AUTHENTICATED.message));
   });
 
   // Get user metadata by Magic user ID

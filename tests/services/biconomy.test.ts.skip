@@ -1,14 +1,26 @@
-import { ethers } from 'ethers';
+// Mock ethers before importing service
+jest.mock('ethers', () => ({
+  providers: {
+    JsonRpcProvider: jest.fn()
+  },
+  Wallet: jest.fn(),
+  utils: {
+    hexlify: jest.fn().mockReturnValue('0x1234567890abcdef'),
+    randomBytes: jest.fn().mockReturnValue(new Uint8Array(32)),
+    getContractAddress: jest.fn().mockReturnValue('0xSmartAccountAddress'),
+    parseUnits: jest.fn().mockReturnValue('1000000'),
+    Interface: jest.fn().mockImplementation(() => ({
+      encodeFunctionData: jest.fn().mockReturnValue('0xencoded')
+    }))
+  }
+}));
 
-// Mock @biconomy/account locally to ensure it works
 jest.mock('@biconomy/account', () => ({
-  __esModule: true,
   BiconomySmartAccountV2: {
-    create: jest.fn(),
-  },
-  PaymasterMode: {
-    SPONSORED: 'SPONSORED',
-  },
+    create: jest.fn().mockResolvedValue({
+      getAccountAddress: jest.fn().mockResolvedValue('0xSmartAccountAddress')
+    })
+  }
 }));
 
 import biconomyService from '../../src/services/biconomy';
@@ -21,6 +33,7 @@ describe('BiconomyService', () => {
       const result = await biconomyService.getSmartAccountAddress(userAddress);
 
       expect(result.smartAccountAddress).toBeDefined();
+      expect(result.bundlerUrl).toBeDefined();
     });
   });
 

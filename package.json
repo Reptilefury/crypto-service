@@ -27,7 +27,7 @@
     "@safe-global/safe-ethers-lib": "^1.9.4",
     "axios": "^1.13.2",
     "dotenv": "^16.0.0",
-    "ethers": "^6.0.0",
+    "ethers": "^5.7.2",
     "fastify": "^4.0.0"
   },
   "overrides": {

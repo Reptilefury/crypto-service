@@ -13,11 +13,13 @@ const UMA_ORACLE_ABI = [
 ];
 
 class UMAService {
-  private provider: ethers.JsonRpcProvider;
+  private provider: ethers.providers.JsonRpcProvider | any;
   private oracleAddress: string;
 
   constructor() {
-    this.provider = new ethers.JsonRpcProvider(config.blockchain.rpcUrl);
+    if (process.env.NODE_ENV !== 'test') {
+      this.provider = new ethers.providers.JsonRpcProvider(config.blockchain.rpcUrl);
+    }
     // UMA OptimisticOracle V3 on Polygon
     this.oracleAddress = '0x5953f2538F613E05bAED8A5AeFa8e6622467AD3D';
   }
@@ -27,11 +29,11 @@ class UMAService {
       const oracle = new ethers.Contract(this.oracleAddress, UMA_ORACLE_ABI, this.provider);
 
       // Create identifier for the market question
-      const identifier = ethers.id(question);
+      const identifier = ethers.utils.id(question);
 
       // USDC address on Polygon as currency
       const currency = '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174';
-      const reward = ethers.parseUnits('10', 6); // 10 USDC reward
+      const reward = ethers.utils.parseUnits('10', 6); // 10 USDC reward
 
       // This would require a signer with funds
       // const tx = await oracle.requestPrice(identifier, resolutionTime, ancillaryData, currency, reward);
@@ -40,7 +42,7 @@ class UMAService {
         marketId,
         identifier: identifier,
         resolutionTime,
-        reward: ethers.formatUnits(reward, 6),
+        reward: ethers.utils.formatUnits(reward, 6),
         currency,
         message: 'Price request would be submitted to UMA Oracle',
         // transactionHash: tx.hash
@@ -54,13 +56,13 @@ class UMAService {
     try {
       // Convert outcome to price format (e.g., "YES" = 1e18, "NO" = 0)
       const proposedPrice = outcome.toLowerCase() === 'yes' ?
-        ethers.parseEther('1') :
-        ethers.parseEther('0');
+        ethers.utils.parseEther('1') :
+        ethers.utils.parseEther('0');
 
       return {
         marketId,
         outcome,
-        proposedPrice: ethers.formatEther(proposedPrice),
+        proposedPrice: ethers.utils.formatEther(proposedPrice),
         evidence,
         message: 'Outcome proposal would be submitted to UMA Oracle'
       };

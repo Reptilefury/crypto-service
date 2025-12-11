@@ -4,7 +4,7 @@ export const config = {
 
   // Magic.link
   magic: {
-    secretKey: process.env.MAGIC_SECRET_KEY!
+    secretKey: process.env.MAGIC_API_KEY!
   },
 
   // Blockchain
@@ -15,6 +15,8 @@ export const config = {
 
   // Biconomy
   biconomy: {
+    apiKey: process.env.BICONOMY_API_KEY!,
+    projectId: process.env.BICONOMY_PROJECT_ID!,
     bundlerUrl: process.env.BICONOMY_BUNDLER_URL!,
     paymasterUrl: process.env.BICONOMY_PAYMASTER_URL!
   },

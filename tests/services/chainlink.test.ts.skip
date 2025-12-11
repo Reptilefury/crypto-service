@@ -1,0 +1,63 @@
+import chainlinkService from '../../src/services/chainlink';
+import { ExternalServiceException, BusinessException } from '../../src/common/exception/AppException';
+
+describe('ChainlinkService', () => {
+  describe('getPrice', () => {
+    it('should get price for valid symbol', async () => {
+      const result = await chainlinkService.getPrice('ETH/USD');
+
+      expect(result.symbol).toBe('ETH/USD');
+      expect(result.price).toBeDefined();
+    });
+
+    it('should handle invalid symbol', async () => {
+      await expect(chainlinkService.getPrice('INVALID/USD'))
+        .rejects
+        .toThrow(BusinessException);
+    });
+  });
+
+  describe('getAvailableFeeds', () => {
+    it('should return available price feeds', () => {
+      const result = chainlinkService.getAvailableFeeds();
+
+      expect(result).toBeDefined();
+      expect(result['ETH/USD']).toBeDefined();
+      expect(result['BTC/USD']).toBeDefined();
+    });
+  });
+
+  describe('validatePriceForMarket', () => {
+    it('should validate price condition', async () => {
+      const result = await chainlinkService.validatePriceForMarket('ETH/USD', 2000, 'gte');
+
+      expect(result.symbol).toBe('ETH/USD');
+      expect(result.targetPrice).toBe(2000);
+    });
+  });
+
+  describe('resolveMarket', () => {
+    it('should resolve market', async () => {
+      const result = await chainlinkService.resolveMarket(
+        'market-1',
+        'ETH/USD',
+        2000,
+        'gte',
+        Math.floor(Date.now() / 1000)
+      );
+
+      expect(result.marketId).toBe('market-1');
+      expect(result.symbol).toBe('ETH/USD');
+    });
+  });
+
+  describe('getFunctionsConfig', () => {
+    it('should return Functions configuration', () => {
+      const config = chainlinkService.getFunctionsConfig();
+
+      expect(config).toBeDefined();
+      expect(config.config).toBeDefined();
+      expect(config.config.routerAddress).toBeDefined();
+    });
+  });
+});
