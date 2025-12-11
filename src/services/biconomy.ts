@@ -1,5 +1,5 @@
 import { BiconomySmartAccountV2, PaymasterMode, BiconomyPaymaster } from '@biconomy/account';
-import { ethers } from 'ethers';
+import { ethers, JsonRpcProvider, randomBytes, hexlify, parseUnits, Interface, getCreateAddress } from 'ethers';
 import { config } from '../config';
 import { ExternalServiceException, BusinessException } from '../common/exception/AppException';
 import { ResponseCode } from '../common/response/ResponseCode';
@@ -14,7 +14,7 @@ class BiconomyService {
 
   constructor() {
     if (process.env.NODE_ENV !== 'test') {
-      this.provider = new ethers.providers.JsonRpcProvider(config.blockchain.rpcUrl);
+      this.provider = new JsonRpcProvider(config.blockchain.rpcUrl);
     }
     this.apiKey = config.biconomy.apiKey;
     this.projectId = config.biconomy.projectId;
@@ -66,7 +66,7 @@ class BiconomyService {
   async createUserWalletFromAddress(userAddress: string) {
     try {
       // Create a wallet with proper hex private key for smart account creation
-      const privateKey = ethers.utils.hexlify(ethers.utils.randomBytes(32));
+      const privateKey = hexlify(randomBytes(32));
       const wallet = new ethers.Wallet(privateKey, this.provider);
       
       // Create Smart Account using proper Biconomy configuration
@@ -109,7 +109,7 @@ class BiconomyService {
     try {
       // For deterministic address computation without full initialization
       // In production, you'd compute this or store it in DB after first creation
-      const smartAccountAddress = ethers.utils.getContractAddress({
+      const smartAccountAddress = getCreateAddress({
         from: userAddress,
         nonce: 0
       });
@@ -134,10 +134,10 @@ class BiconomyService {
   async transferToEscrow(smartAccount: any, escrowAddress: string, amount: string) {
     try {
       const usdcAddress = '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174'; // Polygon USDC
-      const amountInWei = ethers.utils.parseUnits(amount, 6); // USDC has 6 decimals
+      const amountInWei = parseUnits(amount, 6); // USDC has 6 decimals
 
       // Encode transfer function call
-      const txData = new ethers.utils.Interface([
+      const txData = new Interface([
         'function transfer(address to, uint256 amount)'
       ]).encodeFunctionData('transfer', [escrowAddress, amountInWei]);
 

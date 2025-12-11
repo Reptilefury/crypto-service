@@ -1,4 +1,4 @@
-import { ethers } from 'ethers';
+import { ethers, JsonRpcProvider, Contract, id, parseUnits, parseEther, formatUnits, formatEther } from 'ethers';
 import { config } from '../config';
 import { ExternalServiceException, BusinessException } from '../common/exception/AppException';
 import { ResponseCode } from '../common/response/ResponseCode';
@@ -13,12 +13,12 @@ const UMA_ORACLE_ABI = [
 ];
 
 class UMAService {
-  private provider: ethers.providers.JsonRpcProvider | any;
+  private provider: JsonRpcProvider | any;
   private oracleAddress: string;
 
   constructor() {
     if (process.env.NODE_ENV !== 'test') {
-      this.provider = new ethers.providers.JsonRpcProvider(config.blockchain.rpcUrl);
+      this.provider = new JsonRpcProvider(config.blockchain.rpcUrl);
     }
     // UMA OptimisticOracle V3 on Polygon
     this.oracleAddress = '0x5953f2538F613E05bAED8A5AeFa8e6622467AD3D';
@@ -26,14 +26,14 @@ class UMAService {
 
   async requestMarketResolution(marketId: string, question: string, resolutionTime: number) {
     try {
-      const oracle = new ethers.Contract(this.oracleAddress, UMA_ORACLE_ABI, this.provider);
+      const oracle = new Contract(this.oracleAddress, UMA_ORACLE_ABI, this.provider);
 
       // Create identifier for the market question
-      const identifier = ethers.utils.id(question);
+      const identifier = id(question);
 
       // USDC address on Polygon as currency
       const currency = '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174';
-      const reward = ethers.utils.parseUnits('10', 6); // 10 USDC reward
+      const reward = parseUnits('10', 6); // 10 USDC reward
 
       // This would require a signer with funds
       // const tx = await oracle.requestPrice(identifier, resolutionTime, ancillaryData, currency, reward);
@@ -42,7 +42,7 @@ class UMAService {
         marketId,
         identifier: identifier,
         resolutionTime,
-        reward: ethers.utils.formatUnits(reward, 6),
+        reward: formatUnits(reward, 6),
         currency,
         message: 'Price request would be submitted to UMA Oracle',
         // transactionHash: tx.hash
@@ -56,13 +56,13 @@ class UMAService {
     try {
       // Convert outcome to price format (e.g., "YES" = 1e18, "NO" = 0)
       const proposedPrice = outcome.toLowerCase() === 'yes' ?
-        ethers.utils.parseEther('1') :
-        ethers.utils.parseEther('0');
+        parseEther('1') :
+        parseEther('0');
 
       return {
         marketId,
         outcome,
-        proposedPrice: ethers.utils.formatEther(proposedPrice),
+        proposedPrice: formatEther(proposedPrice),
         evidence,
         message: 'Outcome proposal would be submitted to UMA Oracle'
       };
@@ -98,7 +98,7 @@ class UMAService {
 
   async getMarketRequest(marketId: string, identifier: string, timestamp: number) {
     try {
-      const oracle = new ethers.Contract(this.oracleAddress, UMA_ORACLE_ABI, this.provider);
+      const oracle = new Contract(this.oracleAddress, UMA_ORACLE_ABI, this.provider);
 
       // This would fetch the actual request data
       // const request = await oracle.getRequest(requester, identifier, timestamp, ancillaryData);

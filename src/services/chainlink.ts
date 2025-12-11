@@ -1,4 +1,4 @@
-import { ethers } from 'ethers';
+import { ethers, JsonRpcProvider, Contract, formatUnits } from 'ethers';
 import { config } from '../config';
 import { simulateScript, decodeResult, ReturnType } from '@chainlink/functions-toolkit';
 import { ExternalServiceException, BusinessException } from '../common/exception/AppException';
@@ -28,11 +28,11 @@ const HEARTBEAT_THRESHOLDS = {
 };
 
 class ChainlinkService {
-  private provider: ethers.providers.JsonRpcProvider | any;
+  private provider: JsonRpcProvider | any;
 
   constructor() {
     if (process.env.NODE_ENV !== 'test') {
-      this.provider = new ethers.providers.JsonRpcProvider(config.blockchain.rpcUrl);
+      this.provider = new JsonRpcProvider(config.blockchain.rpcUrl);
     }
   }
 
@@ -49,7 +49,7 @@ class ChainlinkService {
         throw new BusinessException(ResponseCode.NOT_FOUND, `Price feed not available for ${symbol}`);
       }
 
-      const priceFeed = new ethers.Contract(feedAddress, PRICE_FEED_ABI, this.provider);
+      const priceFeed = new Contract(feedAddress, PRICE_FEED_ABI, this.provider);
 
       const [roundId, answer, startedAt, updatedAt, answeredInRound] = await priceFeed.latestRoundData();
       const decimals = await priceFeed.decimals();
@@ -59,7 +59,7 @@ class ChainlinkService {
       const heartbeat = HEARTBEAT_THRESHOLDS[symbol as keyof typeof HEARTBEAT_THRESHOLDS] || 3600;
       const isStale = (currentTime - Number(updatedAt)) > heartbeat;
 
-      const price = ethers.utils.formatUnits(answer, decimals);
+      const price = formatUnits(answer, decimals);
 
       return {
         symbol,

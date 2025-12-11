@@ -1,4 +1,4 @@
-import { ethers } from 'ethers';
+import { ethers, JsonRpcProvider, Wallet, Contract, parseUnits, Interface, formatUnits } from 'ethers';
 const Safe = require('@safe-global/protocol-kit');
 import { config } from '../config';
 import { ExternalServiceException, BusinessException } from '../common/exception/AppException';
@@ -14,22 +14,22 @@ const ERC20_ABI = [
 ];
 
 class GnosisService {
-  private provider: ethers.providers.JsonRpcProvider | any;
-  private platformSigner: ethers.Wallet | null = null;
+  private provider: JsonRpcProvider | any;
+  private platformSigner: Wallet | null = null;
 
   constructor() {
     if (process.env.NODE_ENV !== 'test') {
-      this.provider = new ethers.providers.JsonRpcProvider(config.blockchain.rpcUrl);
+      this.provider = new JsonRpcProvider(config.blockchain.rpcUrl);
     }
   }
 
   /**
    * Get or create platform signer for Safe operations
    */
-  private getPlatformSigner(): ethers.Wallet {
+  private getPlatformSigner(): Wallet {
     if (!this.platformSigner) {
-      const privateKey = process.env.PLATFORM_PRIVATE_KEY || ethers.Wallet.createRandom().privateKey;
-      this.platformSigner = new ethers.Wallet(privateKey, this.provider);
+      const privateKey = process.env.PLATFORM_PRIVATE_KEY || Wallet.createRandom().privateKey;
+      this.platformSigner = new Wallet(privateKey, this.provider);
     }
     return this.platformSigner;
   }
@@ -172,8 +172,8 @@ class GnosisService {
       return {
         safeAddress,
         message: 'Safe deployed successfully',
-        transactionHash: receipt.transactionHash,
-        blockNumber: receipt.blockNumber
+        transactionHash: receipt?.hash || '',
+        blockNumber: receipt?.blockNumber || 0
       };
     } catch (error) {
       console.error('Safe deployment error:', error);
@@ -187,7 +187,7 @@ class GnosisService {
   async executeEscrowRelease(escrowSafeAddress: string, recipient: string, amountUSDC: string) {
     try {
       const signer = this.getPlatformSigner();
-      const amount = ethers.utils.parseUnits(amountUSDC, 6);
+      const amount = parseUnits(amountUSDC, 6);
 
       // Connect to deployed Safe
       const safe = await Safe.default.init({
@@ -197,7 +197,7 @@ class GnosisService {
       });
 
       // Encode USDC transfer
-      const erc20 = new ethers.utils.Interface(ERC20_ABI);
+      const erc20 = new Interface(ERC20_ABI);
       const data = erc20.encodeFunctionData('transfer', [recipient, amount]);
 
       // Build Safe Tx
@@ -276,9 +276,9 @@ class GnosisService {
       const nonce = await safe.getNonce();
 
       // Get USDC balance
-      const usdcContract = new ethers.Contract(USDC_ADDRESS, ERC20_ABI, this.provider);
+      const usdcContract = new Contract(USDC_ADDRESS, ERC20_ABI, this.provider);
       const balance = await usdcContract.balanceOf(safeAddress);
-      const balanceFormatted = ethers.utils.formatUnits(balance, 6);
+      const balanceFormatted = formatUnits(balance, 6);
 
       return {
         address: safeAddress,
@@ -298,9 +298,9 @@ class GnosisService {
    */
   async getSafeBalance(safeAddress: string) {
     try {
-      const usdcContract = new ethers.Contract(USDC_ADDRESS, ERC20_ABI, this.provider);
+      const usdcContract = new Contract(USDC_ADDRESS, ERC20_ABI, this.provider);
       const balance = await usdcContract.balanceOf(safeAddress);
-      const balanceFormatted = ethers.utils.formatUnits(balance, 6);
+      const balanceFormatted = formatUnits(balance, 6);
 
       return {
         safeAddress,
