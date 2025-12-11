@@ -1,4 +1,4 @@
-import { ethers } from 'ethers';
+import { ethers, JsonRpcProvider, Contract, formatUnits } from 'ethers';
 import { config } from '../config';
 import { simulateScript, decodeResult, ReturnType } from '@chainlink/functions-toolkit';
 import { ExternalServiceException, BusinessException } from '../common/exception/AppException';
@@ -28,10 +28,12 @@ const HEARTBEAT_THRESHOLDS = {
 };
 
 class ChainlinkService {
-  private provider: ethers.JsonRpcProvider;
+  private provider: JsonRpcProvider | any;
 
   constructor() {
-    this.provider = new ethers.JsonRpcProvider(config.blockchain.rpcUrl);
+    if (process.env.NODE_ENV !== 'test') {
+      this.provider = new JsonRpcProvider(config.blockchain.rpcUrl);
+    }
   }
 
   /**
@@ -47,7 +49,7 @@ class ChainlinkService {
         throw new BusinessException(ResponseCode.NOT_FOUND, `Price feed not available for ${symbol}`);
       }
 
-      const priceFeed = new ethers.Contract(feedAddress, PRICE_FEED_ABI, this.provider);
+      const priceFeed = new Contract(feedAddress, PRICE_FEED_ABI, this.provider);
 
       const [roundId, answer, startedAt, updatedAt, answeredInRound] = await priceFeed.latestRoundData();
       const decimals = await priceFeed.decimals();
@@ -57,7 +59,7 @@ class ChainlinkService {
       const heartbeat = HEARTBEAT_THRESHOLDS[symbol as keyof typeof HEARTBEAT_THRESHOLDS] || 3600;
       const isStale = (currentTime - Number(updatedAt)) > heartbeat;
 
-      const price = ethers.formatUnits(answer, decimals);
+      const price = formatUnits(answer, decimals);
 
       return {
         symbol,
@@ -141,7 +143,7 @@ class ChainlinkService {
       if (resolutionTime) {
         const currentTime = Math.floor(Date.now() / 1000);
         if (currentTime < resolutionTime) {
-          throw new BusinessException(ResponseCode.BAD_REQUEST, 'Resolution time has not been reached yet', { resolutionTime: new Date(resolutionTime * 1000).toISOString() });
+          throw new BusinessException(ResponseCode.VALIDATION_ERROR, 'Resolution time has not been reached yet', { resolutionTime: new Date(resolutionTime * 1000).toISOString() });
         }
       }
 

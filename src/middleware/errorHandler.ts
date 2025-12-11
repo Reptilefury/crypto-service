@@ -9,7 +9,7 @@ export const errorHandler = (error: FastifyError, request: FastifyRequest, reply
     request.log.error({ err: error, traceId }, 'Request failed');
 
     if (error instanceof AppException) {
-        const response = ApiResponse.error(error.responseCode, error.message, error.details);
+        const response = ApiResponse.failed(error.responseCode, error.message, error.details);
         if (response.error) {
             response.error.traceId = traceId;
         }

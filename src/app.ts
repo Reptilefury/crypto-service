@@ -1,4 +1,4 @@
-import Fastify from 'fastify';
+import Fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import dotenv from 'dotenv';
 
@@ -12,40 +12,46 @@ dotenv.config();
 
 import { errorHandler } from './middleware/errorHandler';
 
-const fastify = Fastify({
-  logger: {
-    level: process.env.NODE_ENV === 'production' ? 'info' : 'debug'
-  }
-});
+export async function app(fastify: FastifyInstance) {
+  fastify.setErrorHandler(errorHandler);
 
-fastify.setErrorHandler(errorHandler);
+  // Register CORS
+  await fastify.register(cors, {
+    origin: true,
+    credentials: true
+  });
 
-// Register CORS
-fastify.register(cors, {
-  origin: true,
-  credentials: true
-});
+  // Health check
+  fastify.get('/health', async () => {
+    return { status: 'ok', service: 'crypto-service', timestamp: new Date().toISOString() };
+  });
 
-// Health check
-fastify.get('/health', async () => {
-  return { status: 'ok', service: 'crypto-service', timestamp: new Date().toISOString() };
-});
-
-// Register routes
-fastify.register(authRoutes, { prefix: '/auth' });
-fastify.register(walletRoutes, { prefix: '/wallets' });
-fastify.register(escrowRoutes, { prefix: '/escrow' });
-fastify.register(oracleRoutes, { prefix: '/oracles' });
+  // Register routes
+  await fastify.register(authRoutes, { prefix: '/auth' });
+  await fastify.register(walletRoutes, { prefix: '/wallets' });
+  await fastify.register(escrowRoutes, { prefix: '/escrow' });
+  await fastify.register(oracleRoutes, { prefix: '/oracles' });
+}
 
 const start = async () => {
   try {
+    const fastify = Fastify({
+      logger: {
+        level: process.env.NODE_ENV === 'production' ? 'info' : 'debug'
+      }
+    });
+
+    await app(fastify);
+
     const port = parseInt(process.env.PORT || '3001');
     await fastify.listen({ port, host: '0.0.0.0' });
     fastify.log.info(`Crypto service running on port ${port}`);
   } catch (err) {
-    fastify.log.error(err);
+    console.error(err);
     process.exit(1);
   }
 };
 
-start();
+if (require.main === module) {
+  start();
+}

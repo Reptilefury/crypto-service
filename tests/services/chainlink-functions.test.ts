@@ -2,12 +2,6 @@ import chainlinkService from '../../src/services/chainlink';
 import { simulateScript } from '@chainlink/functions-toolkit';
 import { ExternalServiceException } from '../../src/common/exception/AppException';
 
-// Mock @chainlink/functions-toolkit
-jest.mock('@chainlink/functions-toolkit', () => ({
-    simulateScript: jest.fn(),
-    decodeResult: jest.fn(),
-}));
-
 describe('ChainlinkService - Functions', () => {
     beforeEach(() => {
         jest.clearAllMocks();

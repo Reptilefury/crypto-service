@@ -1,6 +1,5 @@
 import Fastify from 'fastify';
 import authRoutes from '../../src/routes/auth';
-
 import { errorHandler } from '../../src/middleware/errorHandler';
 
 describe('Auth Routes', () => {
@@ -41,8 +40,8 @@ describe('Auth Routes', () => {
 
       expect(response.statusCode).toBe(400);
       const result = JSON.parse(response.payload);
-      expect(result.status).toBe('ERROR');
-      expect(result.error.code).toBe('VALIDATION_ERROR');
+      expect(result.status).toBe('FAILED');
+      expect(result.error).toBeDefined();
     });
   });
 

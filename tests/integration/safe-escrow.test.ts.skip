@@ -1,0 +1,111 @@
+import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
+import { build } from '../helpers';
+
+describe('Safe Escrow Integration Tests', () => {
+  let app: any;
+
+  beforeAll(async () => {
+    // Set test environment variables
+    process.env.PLATFORM_PRIVATE_KEY = '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';
+    process.env.RPC_URL = 'https://polygon-rpc.com';
+    process.env.CHAIN_ID = '137';
+
+    app = build({ logger: false });
+    await app.ready();
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  describe('Safe Wallet Creation Flow', () => {
+    it('should create Safe wallet and return valid address', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/escrow/create-safe',
+        payload: {
+          owners: ['0x5D0F0f1bE93F562D5c4A37cF583CC14238514c84'],
+          threshold: 1
+        }
+      });
+
+      expect(response.statusCode).toBe(200);
+      
+      const body = JSON.parse(response.body);
+      expect(body.status).toBe('SUCCESS');
+      expect(body.data).toHaveProperty('safeAddress');
+      expect(body.data.safeAddress).toMatch(/^0x[a-fA-F0-9]{40}$/);
+      expect(body.data.owners).toEqual(['0x5D0F0f1bE93F562D5c4A37cF583CC14238514c84']);
+      expect(body.data.threshold).toBe(1);
+      expect(body.data.isDeployed).toBe(false);
+    }, 15000); // Increase timeout for Safe SDK operations
+
+    it('should create Safe with multiple owners', async () => {
+      const owners = [
+        '0x5D0F0f1bE93F562D5c4A37cF583CC14238514c84',
+        '0x1234567890123456789012345678901234567890'
+      ];
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/escrow/create-safe',
+        payload: {
+          owners,
+          threshold: 2
+        }
+      });
+
+      expect(response.statusCode).toBe(200);
+      
+      const body = JSON.parse(response.body);
+      expect(body.data.owners).toEqual(owners);
+      expect(body.data.threshold).toBe(2);
+    }, 15000);
+
+    it('should handle invalid owner addresses', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/escrow/create-safe',
+        payload: {
+          owners: ['invalid-address'],
+          threshold: 1
+        }
+      });
+
+      // Should either validate addresses or let Safe SDK handle the error
+      expect([400, 500, 502]).toContain(response.statusCode);
+    });
+  });
+
+  describe('Safe Address Validation', () => {
+    it('should generate deterministic addresses for same configuration', async () => {
+      const config = {
+        owners: ['0x5D0F0f1bE93F562D5c4A37cF583CC14238514c84'],
+        threshold: 1
+      };
+
+      const response1 = await app.inject({
+        method: 'POST',
+        url: '/escrow/create-safe',
+        payload: config
+      });
+
+      const response2 = await app.inject({
+        method: 'POST',
+        url: '/escrow/create-safe',
+        payload: config
+      });
+
+      expect(response1.statusCode).toBe(200);
+      expect(response2.statusCode).toBe(200);
+
+      const body1 = JSON.parse(response1.body);
+      const body2 = JSON.parse(response2.body);
+
+      // Note: Safe addresses might not be deterministic due to salt/nonce
+      // This test verifies the service works consistently
+      expect(body1.data.safeAddress).toMatch(/^0x[a-fA-F0-9]{40}$/);
+      expect(body2.data.safeAddress).toMatch(/^0x[a-fA-F0-9]{40}$/);
+    }, 30000);
+  });
+});

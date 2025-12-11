@@ -1,5 +1,5 @@
-import { ethers } from 'ethers';
-import Safe from '@safe-global/protocol-kit';
+import { ethers, JsonRpcProvider, Wallet, Contract, parseUnits, Interface, formatUnits } from 'ethers';
+const Safe = require('@safe-global/protocol-kit');
 import { config } from '../config';
 import { ExternalServiceException, BusinessException } from '../common/exception/AppException';
 import { ResponseCode } from '../common/response/ResponseCode';
@@ -14,126 +14,228 @@ const ERC20_ABI = [
 ];
 
 class GnosisService {
-  private provider: ethers.JsonRpcProvider;
-  private platformSigner: ethers.Wallet | null = null;
+  private provider: JsonRpcProvider | any;
+  private platformSigner: Wallet | null = null;
 
   constructor() {
-    this.provider = new ethers.JsonRpcProvider(config.blockchain.rpcUrl);
+    if (process.env.NODE_ENV !== 'test') {
+      this.provider = new JsonRpcProvider(config.blockchain.rpcUrl);
+    }
   }
 
   /**
    * Get or create platform signer for Safe operations
-   * In production, this would use a secure key management system
    */
-  private getPlatformSigner(): ethers.Wallet {
+  private getPlatformSigner(): Wallet {
     if (!this.platformSigner) {
-      // For demo purposes - in production, use secure key management
-      const privateKey = process.env.PLATFORM_PRIVATE_KEY || ethers.Wallet.createRandom().privateKey;
-      this.platformSigner = new ethers.Wallet(privateKey, this.provider);
+      const privateKey = process.env.PLATFORM_PRIVATE_KEY || Wallet.createRandom().privateKey;
+      this.platformSigner = new Wallet(privateKey, this.provider);
     }
     return this.platformSigner;
   }
 
   /**
-   * Create a market escrow Safe wallet
-   * @param owners - Array of owner addresses (default: platform signer)
-   * @param threshold - Number of signatures required (default: 1)
-   * @returns Safe address and deployment info
+   * Create a market escrow Safe wallet using Safe SDK (isolated execution)
    */
   async createMarketEscrowSafe(owners?: string[], threshold: number = 1) {
     try {
       const signer = this.getPlatformSigner();
       const safeOwners = owners || [signer.address];
 
-      // Initialize Safe with predicted configuration
-      const safe = await Safe.init({
-        provider: config.blockchain.rpcUrl, // Use RPC URL string
-        signer: signer.privateKey, // Use private key string, not Wallet object
-        predictedSafe: {
-          safeAccountConfig: {
-            owners: safeOwners,
-            threshold: threshold
+      // Debug: Check config values
+      console.log('Debug - RPC URL:', config.blockchain.rpcUrl);
+      console.log('Debug - Chain ID:', config.blockchain.chainId);
+
+      // Use child process to avoid server context issues with Safe SDK
+      const { spawn } = require('child_process');
+      const rpcUrl = config.blockchain.rpcUrl || 'https://polygon-rpc.com';
+      const privateKey = signer.privateKey;
+      const signerAddress = signer.address;
+
+      return new Promise((resolve, reject) => {
+        const child = spawn('node', ['-e', `
+          const Safe = require('@safe-global/protocol-kit');
+          
+          async function createSafe() {
+            try {
+              console.log('Child process - RPC URL:', '${rpcUrl}');
+              
+              const protocolKit = await Safe.default.init({
+                provider: '${rpcUrl}',
+                signer: '${privateKey}',
+                predictedSafe: {
+                  safeAccountConfig: {
+                    owners: ${JSON.stringify(safeOwners)},
+                    threshold: ${threshold}
+                  }
+                }
+              });
+              
+              const safeAddress = await protocolKit.getAddress();
+              const isDeployed = await protocolKit.isSafeDeployed();
+              
+              console.log(JSON.stringify({
+                safeAddress,
+                owners: ${JSON.stringify(safeOwners)},
+                threshold: ${threshold},
+                platformSigner: '${signerAddress}',
+                isDeployed,
+                message: 'Safe wallet created successfully using Safe SDK',
+                note: isDeployed ? 'Safe is already deployed' : 'Safe will be deployed on first transaction'
+              }));
+            } catch (error) {
+              console.error('ERROR:', error.message);
+              process.exit(1);
+            }
           }
-        }
+          
+          createSafe();
+        `], { cwd: process.cwd() });
+
+        let output = '';
+        let errorOutput = '';
+
+        child.stdout.on('data', (data: any) => {
+          output += data.toString();
+        });
+
+        child.stderr.on('data', (data: any) => {
+          errorOutput += data.toString();
+        });
+
+        child.on('close', (code: any) => {
+          if (code === 0) {
+            try {
+              // Extract JSON from output (ignore debug logs)
+              const lines = output.trim().split('\n');
+              const jsonLine = lines.find(line => line.startsWith('{'));
+              if (jsonLine) {
+                const result = JSON.parse(jsonLine);
+                resolve(result);
+              } else {
+                reject(new Error('No valid JSON output received from Safe SDK'));
+              }
+            } catch (parseError) {
+              reject(new Error(`Failed to parse Safe SDK output: ${output}`));
+            }
+          } else {
+            reject(new Error(`Safe SDK failed: ${errorOutput || output}`));
+          }
+        });
+
+        child.on('error', (error: any) => {
+          reject(new Error(`Failed to spawn Safe SDK process: ${error.message}`));
+        });
+      });
+    } catch (error) {
+      console.error('Safe SDK Error:', error);
+      throw new ExternalServiceException(error instanceof Error ? error.message : 'Failed to create Safe wallet');
+    }
+  }
+
+  /**
+   * Deploy a Safe wallet immediately
+   */
+  async deploySafe(safeAddress: string) {
+    try {
+      const signer = this.getPlatformSigner();
+
+      // Connect to existing Safe
+      const protocolKit = await Safe.default.init({
+        provider: config.blockchain.rpcUrl,
+        signer: signer.privateKey,
+        safeAddress: safeAddress
       });
 
-      // Get the predicted Safe address
-      const safeAddress = await safe.getAddress();
+      // Check if already deployed
+      const isDeployed = await protocolKit.isSafeDeployed();
+      if (isDeployed) {
+        return {
+          safeAddress,
+          message: 'Safe is already deployed',
+          transactionHash: null
+        };
+      }
+
+      // Create deployment transaction
+      const deploymentTransaction = await protocolKit.createSafeDeploymentTransaction();
+
+      // Execute deployment transaction
+      const txResponse = await signer.sendTransaction({
+        to: deploymentTransaction.to,
+        value: deploymentTransaction.value,
+        data: deploymentTransaction.data
+      });
+
+      const receipt = await txResponse.wait();
 
       return {
         safeAddress,
-        owners: safeOwners,
-        threshold,
-        message: 'Market escrow Safe address predicted successfully',
-        note: 'Safe will be deployed on first transaction. Use deploySafe() to deploy immediately.'
+        message: 'Safe deployed successfully',
+        transactionHash: receipt?.hash || '',
+        blockNumber: receipt?.blockNumber || 0
       };
     } catch (error) {
-      throw new ExternalServiceException(error instanceof Error ? error.message : 'Failed to create escrow safe');
+      console.error('Safe deployment error:', error);
+      throw new ExternalServiceException(error instanceof Error ? error.message : 'Failed to deploy Safe');
     }
   }
 
   /**
    * Execute payout from escrow Safe to winner
-   * @param escrowSafeAddress - Safe address holding the funds
-   * @param recipient - Winner's address
-   * @param amountUSDC - Amount in USDC (with decimals, e.g., "100.50")
-   * @returns Transaction hash
    */
   async executeEscrowRelease(escrowSafeAddress: string, recipient: string, amountUSDC: string) {
     try {
       const signer = this.getPlatformSigner();
-      const amount = ethers.parseUnits(amountUSDC, 6); // USDC has 6 decimals
+      const amount = parseUnits(amountUSDC, 6);
 
-      // Initialize Safe instance for existing Safe
-      const safe = await Safe.init({
+      // Connect to deployed Safe
+      const safe = await Safe.default.init({
         provider: config.blockchain.rpcUrl,
         signer: signer.privateKey,
-        safeAddress: escrowSafeAddress,
+        safeAddress: escrowSafeAddress
       });
 
       // Encode USDC transfer
-      const erc20Interface = new ethers.Interface(ERC20_ABI);
-      const data = erc20Interface.encodeFunctionData('transfer', [recipient, amount]);
+      const erc20 = new Interface(ERC20_ABI);
+      const data = erc20.encodeFunctionData('transfer', [recipient, amount]);
 
-      // Create Safe transaction
+      // Build Safe Tx
       const safeTx = await safe.createTransaction({
         transactions: [{
           to: USDC_ADDRESS,
-          data: data,
-          value: '0'
+          value: '0',
+          data
         }]
       });
 
-      // Execute transaction
+      // Execute Safe Tx
       const txResponse = await safe.executeTransaction(safeTx);
-      const txHash = txResponse.hash;
 
       return {
-        transactionHash: txHash,
+        transactionHash: txResponse.hash,
         safeAddress: escrowSafeAddress,
         recipient,
         amount: amountUSDC,
         message: 'Escrow released successfully'
       };
     } catch (error) {
+      console.error('release error:', error);
       throw new ExternalServiceException(error instanceof Error ? error.message : 'Failed to release escrow');
     }
   }
 
   /**
    * Propose a transaction to the Safe (for multi-sig)
-   * @param safeAddress - Safe address
-   * @param transaction - Transaction details
-   * @returns Proposed transaction info
    */
   async proposeTransaction(safeAddress: string, transaction: any) {
     try {
       const signer = this.getPlatformSigner();
 
-      const safe = await Safe.init({
+      const safe = await Safe.default.init({
         provider: config.blockchain.rpcUrl,
         signer: signer.privateKey,
-        safeAddress: safeAddress,
+        safeAddress
       });
 
       // Create transaction
@@ -158,17 +260,15 @@ class GnosisService {
 
   /**
    * Get Safe information
-   * @param safeAddress - Safe address
-   * @returns Safe configuration and balance
    */
   async getSafeInfo(safeAddress: string) {
     try {
       const signer = this.getPlatformSigner();
 
-      const safe = await Safe.init({
+      const safe = await Safe.default.init({
         provider: config.blockchain.rpcUrl,
         signer: signer.privateKey,
-        safeAddress: safeAddress,
+        safeAddress
       });
 
       const owners = await safe.getOwners();
@@ -176,9 +276,9 @@ class GnosisService {
       const nonce = await safe.getNonce();
 
       // Get USDC balance
-      const usdcContract = new ethers.Contract(USDC_ADDRESS, ERC20_ABI, this.provider);
+      const usdcContract = new Contract(USDC_ADDRESS, ERC20_ABI, this.provider);
       const balance = await usdcContract.balanceOf(safeAddress);
-      const balanceFormatted = ethers.formatUnits(balance, 6);
+      const balanceFormatted = formatUnits(balance, 6);
 
       return {
         address: safeAddress,
@@ -195,14 +295,12 @@ class GnosisService {
 
   /**
    * Check USDC balance in Safe
-   * @param safeAddress - Safe address
-   * @returns USDC balance
    */
   async getSafeBalance(safeAddress: string) {
     try {
-      const usdcContract = new ethers.Contract(USDC_ADDRESS, ERC20_ABI, this.provider);
+      const usdcContract = new Contract(USDC_ADDRESS, ERC20_ABI, this.provider);
       const balance = await usdcContract.balanceOf(safeAddress);
-      const balanceFormatted = ethers.formatUnits(balance, 6);
+      const balanceFormatted = formatUnits(balance, 6);
 
       return {
         safeAddress,

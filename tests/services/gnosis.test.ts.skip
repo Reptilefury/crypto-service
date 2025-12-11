@@ -1,0 +1,63 @@
+// Mock ethers before importing
+jest.mock('ethers', () => ({
+  providers: {
+    JsonRpcProvider: jest.fn()
+  },
+  Wallet: jest.fn().mockImplementation(() => ({
+    address: '0xPlatformSigner',
+    privateKey: '0x1234567890abcdef'
+  })),
+  Contract: jest.fn().mockImplementation(() => ({
+    balanceOf: jest.fn().mockResolvedValue('1000000')
+  })),
+  utils: {
+    formatUnits: jest.fn().mockReturnValue('1.0')
+  }
+}));
+
+// Mock Safe SDK
+jest.mock('@safe-global/protocol-kit', () => jest.fn());
+
+import gnosisService from '../../src/services/gnosis';
+
+describe('GnosisService', () => {
+  describe('createMarketEscrowSafe', () => {
+    it('should create Safe with default parameters', async () => {
+      const result: any = await gnosisService.createMarketEscrowSafe();
+
+      expect(result.safeAddress).toBeDefined();
+      expect(result.owners).toBeDefined();
+      expect(result.threshold).toBeGreaterThan(0);
+      expect(result.message).toContain('Safe');
+    });
+
+    it('should create Safe with custom owners', async () => {
+      const customOwners = ['0x1234567890123456789012345678901234567890'];
+      const result: any = await gnosisService.createMarketEscrowSafe(customOwners, 1);
+
+      expect(result.owners).toEqual(expect.arrayContaining(customOwners));
+    });
+  });
+
+  describe('getSafeInfo', () => {
+    it('should return Safe information', async () => {
+      const safeAddress = '0xEBD3c785be50b5268251a421D940eadDee3e4Da3';
+
+      const result: any = await gnosisService.getSafeInfo(safeAddress);
+
+      expect(result.address).toBe(safeAddress);
+      expect(result.usdcBalance).toBeDefined();
+    });
+  });
+
+  describe('getSafeBalance', () => {
+    it('should return USDC balance', async () => {
+      const safeAddress = '0xEBD3c785be50b5268251a421D940eadDee3e4Da3';
+
+      const balance = await gnosisService.getSafeBalance(safeAddress);
+
+      expect(balance).toBeDefined();
+      expect(typeof balance).toBe('string');
+    });
+  });
+});

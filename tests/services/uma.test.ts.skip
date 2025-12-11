@@ -1,0 +1,78 @@
+import umaService from '../../src/services/uma';
+
+describe('UMAService', () => {
+  describe('requestMarketResolution', () => {
+    it('should request market resolution', async () => {
+      const result = await umaService.requestMarketResolution(
+        'market-1',
+        'Will BTC reach $100k by end of 2024?',
+        Math.floor(Date.now() / 1000)
+      );
+
+      expect(result.marketId).toBe('market-1');
+      expect(result.identifier).toBeDefined();
+      expect(result.message).toContain('UMA Oracle');
+    });
+  });
+
+  describe('proposeMarketOutcome', () => {
+    it('should propose YES outcome', async () => {
+      const result = await umaService.proposeMarketOutcome('market-1', 'yes', 'Evidence link');
+
+      expect(result.marketId).toBe('market-1');
+      expect(result.outcome).toBe('yes');
+      expect(result.proposedPrice).toBeDefined();
+    });
+
+    it('should propose NO outcome', async () => {
+      const result = await umaService.proposeMarketOutcome('market-1', 'no');
+
+      expect(result.outcome).toBe('no');
+      expect(result.proposedPrice).toBe('0.0');
+    });
+  });
+
+  describe('disputeMarketOutcome', () => {
+    it('should dispute market outcome', async () => {
+      const result = await umaService.disputeMarketOutcome('market-1', 'Data is incorrect');
+
+      expect(result.marketId).toBe('market-1');
+      expect(result.reason).toBe('Data is incorrect');
+      expect(result.disputePeriod).toBeDefined();
+    });
+  });
+
+  describe('settleMarket', () => {
+    it('should settle market', async () => {
+      const result = await umaService.settleMarket('market-1');
+
+      expect(result.marketId).toBe('market-1');
+      expect(result.message).toContain('settlement');
+    });
+  });
+
+  describe('getMarketRequest', () => {
+    it('should get market request status', async () => {
+      const result = await umaService.getMarketRequest(
+        'market-1',
+        '0xidentifier',
+        Math.floor(Date.now() / 1000)
+      );
+
+      expect(result.marketId).toBe('market-1');
+      expect(result.status).toBeDefined();
+    });
+  });
+
+  describe('getOptimisticOracleInfo', () => {
+    it('should return oracle information', async () => {
+      const result = await umaService.getOptimisticOracleInfo();
+
+      expect(result.oracleAddress).toBeDefined();
+      expect(result.network).toBe('Polygon');
+      expect(result.version).toContain('OptimisticOracle');
+      expect(result.features).toBeDefined();
+      expect(Array.isArray(result.features)).toBe(true);
+    });
+  });
+});

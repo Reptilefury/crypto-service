@@ -5,16 +5,25 @@ import { ValidationException } from '../common/exception/AppException';
 
 const escrowRoutes: FastifyPluginAsync = async (fastify) => {
 
-  // Create market escrow safe
-  fastify.post('/create-safe', async (request, reply) => {
-    const { owners, threshold } = request.body as {
-      owners: string[];
-      threshold?: number;
+  // Deploy Safe immediately
+  fastify.post('/deploy', async (request, reply) => {
+    const { safeAddress } = request.body as {
+      safeAddress: string;
     };
 
-    if (!owners || owners.length === 0) {
-      throw new ValidationException({ owners: 'Owners array is required' });
+    if (!safeAddress) {
+      throw new ValidationException({ safeAddress: 'Safe address is required' });
     }
+
+    const result = await gnosisService.deploySafe(safeAddress);
+
+    return reply.send(ApiResponse.success(result));
+  });
+  fastify.post('/create-safe', async (request, reply) => {
+    const { owners, threshold } = request.body as {
+      owners?: string[];
+      threshold?: number;
+    };
 
     const result = await gnosisService.createMarketEscrowSafe(owners, threshold);
 
