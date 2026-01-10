@@ -11,7 +11,7 @@ env:
   SERVICE_NAME: crypto-service
   REGION: us-central1
   REGISTRY: us-docker.pkg.dev
-  REPOSITORY: gcr.io
+  REPOSITORY: crypto-repo
 
 jobs:
   pre-deployment-checks:
